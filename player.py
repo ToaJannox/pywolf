@@ -23,10 +23,19 @@ class Player:
     def vote(self,list):
         chosenPlayer = self
         choice = list.index(self)
+        if self.memory: #if the player now the roles of some other player we must review them first
+            targets = []
+            for player,role in self.memory:
+                if role in werewolfRoles: #if any wolf is found they must be targetted
+                    targets.append(player)
+            if targets: #if wolves have been found the player will vote among them, if not the vote is normal
+                list = targets
         while (chosenPlayer == self) or not chosenPlayer.alive:
             choice = randint(0,len(list)-1)
             chosenPlayer = list[choice]
         return choice
+    def forgetDeadPlayers(self):
+        self.memory[:] =[mem for mem in self.memory if mem[0].alive]
 
 
 class Villager(Player):
@@ -66,16 +75,6 @@ class FortuneTeller(Villager):
         super().__init__()
         self.role="Fortune Teller"
         self.hasPower = True
-    def vote(self,list):
-        if not self.memory:
-            choice = super.vote(list)
-        else:
-            targets = []
-            for player,role in self.memory:
-                if role == "Werewolf":
-                    targets.append(player)
-            choice = list.index(targets[randint(0,len(targets)-1)])
-        return choice
     def tellFortune(self,list):
         chosenTarget = self
         while(chosenTarget == self or (chosenTarget,chosenTarget.role) in self.memory):

@@ -28,6 +28,7 @@ phase = Phase.SETUP
 def setup(roleList=[("Villager", 7), ("Werewolf", 3)]):
     global playerList, playerAmount, werewolfAmount, villagerAmount
     print("Setting game up.")
+    # print(roleList)
     playerList = []
     for role, amount in roleList:
         if role in villagerRoles:
@@ -39,7 +40,7 @@ def setup(roleList=[("Villager", 7), ("Werewolf", 3)]):
             for i in range(0,amount):
                 playerList.append(werewolfRoles[role]())
         elif role in ambiguousRoles:
-            ambiguousRoles += amount
+            ambiguousAmount += amount
             for i in range(0,amount):
                 playerList.append(ambiguousRoles[role]())
         elif role in lonerRoles:
@@ -171,6 +172,10 @@ def killVictims(list):
     if wolves < werewolfAmount:
         werewolfAmount = wolves
 
-
-setup()
+list =[
+    ("Werewolf",3),
+    ("Villager",6),
+    ("Fortune Teller",1)
+]
+setup(list)
 play()
