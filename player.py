@@ -70,16 +70,39 @@ class Loner(Player):
     def vote(self,list):
         pass
 #TODO finish  test FortuneTeller
+
+
 class FortuneTeller(Villager):
     def __init__(self):
         super().__init__()
-        self.role="Fortune Teller"
+        self.role = "Fortune Teller"
         self.hasPower = True
-    def tellFortune(self,list):
+
+    def tellFortune(self, list):
         chosenTarget = self
-        while(chosenTarget == self or (chosenTarget,chosenTarget.role) in self.memory):
-            chosenTarget = list[randint(0,len(list)-1)]
-        print("The Fortune Teller saw that "+chosenTarget.name + " is a "+chosenTarget.role)
+        while(chosenTarget == self or (chosenTarget, chosenTarget.role) in self.memory):
+            chosenTarget = list[randint(0, len(list)-1)]
+        print("The Fortune Teller saw that " +chosenTarget.name + " is a "+chosenTarget.role)
+
+class Hunter(Villager):
+    def __init__(self):
+        super().__init__()
+        self.role = "Hunter"
+        self.hasPower = True
+
+    def shootOnDeath(self,list):
+        print("The Hunter shoot someone on is dying breath")
+        return self.vote(list) 
+
+# class Cupid(Villager):
+#     def __init__(self):
+#         super().__init__()
+#         self.role = "Cupid"
+#         self.hasPower = True
+#     def chooseLovers(self,list):
+#         for
+#         lover.append(list[randint(0,len(list)-1)])
+
 
 villagerRoles = {
     "Villager":Villager,
@@ -87,7 +110,7 @@ villagerRoles = {
     "Fortune Teller":FortuneTeller,
     "Cupid":Player,
     "Witch":Player,
-    "Hunter":Player,
+    "Hunter":Hunter,
     "Little Girl":Player,
     "Guard":Player,
     "Ancient":Player,
