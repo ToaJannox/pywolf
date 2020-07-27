@@ -3,6 +3,7 @@ from player import *
 from random import shuffle
 from enum import Enum
 from time import sleep
+import os
 
 
 class Phase(Enum):
@@ -12,7 +13,7 @@ class Phase(Enum):
     DAY = 3
 
 
-delay = 2
+delay = 5
 playerAmount = 0
 werewolfAmount = 0
 villagerAmount = 0
@@ -66,40 +67,48 @@ def play():
     global phase, playerList
     running = True
     victims = []
+    turn = 0
     while running:
         if phase == Phase.SETUP:
-            print("\nSetup\n")
+            print("Setup - Turn "+str(turn))
+            print("-----------------------------------")
             phase = Phase.FIRST_NIGHT
         elif phase == Phase.FIRST_NIGHT:
-            print("\nFirst Night\n")
+            print("First Night - Turn "+ str(turn))
+            print("-----------------------------------")
             night(victims,True)
             phase = Phase.DAY
         elif phase == Phase.NIGHT:
-            print("\nNight\n")
+            print("Night - Turn "+str(turn))
+            print("-----------------------------------")
             night(victims)
             phase = Phase.DAY
         elif phase == Phase.DAY:
-            print("Day\n")
+            print("Day - Turn "+str(turn))
+            print("-----------------------------------")
             day(victims)
+            turn += 1
             phase = Phase.NIGHT
-
         killVictims(victims)
-        sleep(delay)
         victims.clear()
         if villagerAmount == 0 or werewolfAmount == 0:
             running = False
-
-        print("\nRemaining players: \n")
+        print("-----------------------------------")
+        print("Remaining players:")
         print("\tRemaining villagers:" +str(villagerAmount))
         print("\tRemaining wolves:" +str(werewolfAmount))
         print("\tRemaining loners:" +str(lonerAmount))
         print("\tRemaining ambiguous:" +str(ambiguousAmount))
         print("\tRemaining specials:" +str(specialAmount))
-
+        print("-----------------------------------")
         for p in playerList:
             p.display()
             p.votes = 0
-        print("-----------------------------------")
+        print("+---------------------------------+")
+        sleep(delay)
+        os.system('cls' if os.name =='nt' else 'clear')
+        print("+---------------------------------+")
+    os.system('cls' if os.name =='nt' else 'clear')
     print("Game ended")
     print("Villager alive " + str(villagerAmount))
     print("Werewolves alive " + str(werewolfAmount))
@@ -123,11 +132,26 @@ def night(victims,firstNight=False):
 
     if firstNight:
         wolfSetup()
-
     victim = wolfVote()
+
     victims.append(victim)
-    if "Cupid" in presentRoles:
-        victimLover =playerList[victim].lover 
+    p = findPlayer("Witch")
+    if p:
+        witchSave = None
+        if p.healthPotion:
+            witchSave = p.heal(victim,victims,playerList)
+        if p.poisonVial:
+            witchVictim = p.poison(witchSave,playerList)
+            if witchVictim:
+                victims.append(witchVictim)
+
+
+
+    if "Cupid" in presentRoles: #check if the lover were killed if Cupid is present
+        victimLover = None
+        for i in victims:
+            p = playerList[i] 
+            victimLover = p.lover 
         if victimLover:            
             victims.append(playerList.index(victimLover))
 
@@ -135,8 +159,11 @@ def day(victims):
     global playerList
     victim = dayVote()
     victims.append(victim)
-    if "Cupid" in presentRoles:
-        victimLover =playerList[victim].lover 
+    if "Cupid" in presentRoles: #check if the lover were killed if Cupid is present
+        victimLover = None
+        for i in victims:
+            p = playerList[i] 
+            victimLover = p.lover 
         if victimLover:            
             victims.append(playerList.index(victimLover))
 
@@ -193,13 +220,14 @@ def dayVote():
         if player.votes > highestVote:
             highestVote = player.votes
             result = playerList.index(player)
-    print("Chosen villager: "+playerList[result].name +
-          " with "+str(playerList[result].votes)+" votes")
+    print("Chosen villager: "+playerList[result].name + " with "+str(playerList[result].votes)+" votes")
     return result
 
 
 def killVictims(list,displayResults = True):
     global playerList, werewolfAmount, villagerAmount
+    if not list:
+        print("Nobody died !!!!")
     for victim in list:
         p = playerList[victim]
         p.display
@@ -234,11 +262,14 @@ def killVictims(list,displayResults = True):
         special = special
 
 list =[
-    ("Werewolf",3),
+    ("Werewolf",4),
     ("Villager",6),
     ("Fortune Teller",1),
     ("Hunter",1),
-    ("Cupid",1)
+    ("Cupid",1),
+    ("Witch",1)
 ]
+os.system('cls' if os.name =='nt' else 'clear')
 setup(list)
+print("+---------------------------------+")
 play()
