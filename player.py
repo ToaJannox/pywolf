@@ -16,7 +16,10 @@ class Player:
         if self.alive:
             print(self.name)
         else:
-            print(self.name +"("+self.role +")")
+            if self.lover:
+                print(self.name +"("+self.role +") <3")
+            else:
+                print(self.name +"("+self.role +")")    
     def checkRoleIs(self,role):
         return (type(self.role) is role)
 
@@ -94,21 +97,35 @@ class Hunter(Villager):
         print("The Hunter shoot someone on is dying breath")
         return self.vote(list) 
 
-# class Cupid(Villager):
+class Cupid(Villager):
+    def __init__(self):
+        super().__init__()
+        self.role = "Cupid"
+        self.hasPower = True
+    def chooseLovers(self,list):
+        loverA = list[randint(0,len(list)-1)]
+        loverB = loverA
+        while loverB == loverA:
+            loverB = list[randint(0,len(list)-1)]
+        loverA.lover = loverB
+        loverB.lover = loverA
+        print(loverA.name +" and "+loverB.name+" are lovers")
+
+# class Witch(Villager):
 #     def __init__(self):
 #         super().__init__()
-#         self.role = "Cupid"
+#         self.role = "Witch"
 #         self.hasPower = True
-#     def chooseLovers(self,list):
-#         for
-#         lover.append(list[randint(0,len(list)-1)])
+#         self.healthPotion = True
+#         self.poison = True
+#     def heal(victims):
 
 
 villagerRoles = {
     "Villager":Villager,
     "Villager-Villager":Player,
     "Fortune Teller":FortuneTeller,
-    "Cupid":Player,
+    "Cupid":Cupid,
     "Witch":Player,
     "Hunter":Hunter,
     "Little Girl":Player,
@@ -152,3 +169,4 @@ specialRoles = {
     "Pyromaniac":Player,
     "Raven":Player,
     "Gypsy":Player}
+dayVote

@@ -12,7 +12,7 @@ class Phase(Enum):
     DAY = 3
 
 
-delay = 4
+delay = 2
 playerAmount = 0
 werewolfAmount = 0
 villagerAmount = 0
@@ -84,6 +84,7 @@ def play():
             phase = Phase.NIGHT
 
         killVictims(victims)
+        sleep(delay)
         victims.clear()
         if villagerAmount == 0 or werewolfAmount == 0:
             running = False
@@ -99,7 +100,6 @@ def play():
             p.display()
             p.votes = 0
         print("-----------------------------------")
-        sleep(delay)
     print("Game ended")
     print("Villager alive " + str(villagerAmount))
     print("Werewolves alive " + str(werewolfAmount))
@@ -111,16 +111,34 @@ def play():
 
 def night(victims,firstNight=False):
     global playerList
+
+    if firstNight:
+        p = findPlayer("Cupid")
+        if p:
+            p.chooseLovers(playerList)
+
     p = findPlayer("Fortune Teller")
     if p:
         p.tellFortune(playerList)
+
     if firstNight:
         wolfSetup()
 
-    victims.append(wolfVote())
+    victim = wolfVote()
+    victims.append(victim)
+    if "Cupid" in presentRoles:
+        victimLover =playerList[victim].lover 
+        if victimLover:            
+            victims.append(playerList.index(victimLover))
 
 def day(victims):
-    victims.append(dayVote())
+    global playerList
+    victim = dayVote()
+    victims.append(victim)
+    if "Cupid" in presentRoles:
+        victimLover =playerList[victim].lover 
+        if victimLover:            
+            victims.append(playerList.index(victimLover))
 
 def findPlayer(role):
     global playerList,presentRoles
@@ -187,6 +205,8 @@ def killVictims(list,displayResults = True):
         p.display
         p.alive = False
         print("Player " + p.name + " is now dead and was a " + p.role)
+        if p.lover:
+            print(p.name+" lover, "+p.lover.name+" followed his love in death")
         if p.role == "Hunter":
             killVictims([p.shootOnDeath(playerList)],False)
     if displayResults:
@@ -217,7 +237,8 @@ list =[
     ("Werewolf",3),
     ("Villager",6),
     ("Fortune Teller",1),
-    ("Hunter",1)
+    ("Hunter",1),
+    ("Cupid",1)
 ]
 setup(list)
 play()
