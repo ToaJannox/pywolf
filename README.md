@@ -25,3 +25,10 @@ The goal of this game is simple:
 - **Fortune Teller:** Each night, the Fortune Teller can choose one another player and discover it's role.
 - **Hunter:** Upon it's death, he choose a player to join him in death.
 - **Cupid:** During the first night, Cupid choose two player (he can choose himself), those two will be lovers. Upon one of the lover's death, the other will rejoin him in death.
+- **Witch:** Possess a healing potion and a poison vial. She can use each once per game. Each night while she still can use here healing potion, the victim will be revealed to her. She can decide to heal that victim or not.
+Each night she can also use here poison vial to kill someone she suspect
+
+## Game flow
+
+### 1st night
+- Roles are give
