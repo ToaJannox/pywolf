@@ -11,32 +11,43 @@ class Player:
         self.isCaptain = False
         self.memory = []
         self.lover = None
+        self.deathAnnounced = False
 
     def display(self):
-        if self.alive:
-            print(self.name)
+        print(self.name,end="")
+        print("\tVotes: ",str(self.votes),end="")
+        if not self.alive:
+            print(" ✝ ",end="")
         else:
-            if self.lover:
-                print(self.name +"("+self.role +") <3")
-            else:
-                print(self.name +"("+self.role +")")    
-    def checkRoleIs(self,role):
-        return (type(self.role) is role)
+            print("   ",end="")
+        if self.lover:
+                print(" ❤ ",end="")
+        else:
+                print("   ",end="")
+        print("\t("+self.role +")")
+        print("Memory: [",end="")
+        for player,role in self.memory:
+            print("("+player.name+","+role+") ",end="")
+        print("]")
+    def isAlly(self,player):
+        return issubclass(type(super()),type(player.super()))
 
-    def vote(self,list):
+    def vote(self,playerList):
+        choice = -1
         chosenPlayer = self
-        choice = list.index(self)
-        if self.memory: #if the player now the roles of some other player we must review them first
-            targets = []
-            for player,role in self.memory:
-                if role in werewolfRoles: #if any wolf is found they must be targetted
-                    targets.append(player)
-            if targets: #if wolves have been found the player will vote among them, if not the vote is normal
-                list = targets
-        while (chosenPlayer == self) or not chosenPlayer.alive:
+        list = playerList[:]
+        for p in playerList:
+            if p in list and (p.alive == False):
+                list.remove(p)
+        if self in  list:
+            list.remove(self)
+        if self.lover and (self.lover in list):
+            list.remove(self.lover)
+        while (not chosenPlayer.alive) or (chosenPlayer == self):
             choice = randint(0,len(list)-1)
             chosenPlayer = list[choice]
-        return choice
+        return chosenPlayer
+
     def forgetDeadPlayers(self):
         self.memory[:] =[mem for mem in self.memory if mem[0].alive]
 
@@ -45,6 +56,18 @@ class Villager(Player):
     def __init__(self):
         super().__init__()
         self.role = "Villager"
+    def vote(self,playerList):
+        list = playerList[:]
+        targets = []
+        for player,role in self.memory: #if the player now the roles of some other player we must review them first
+            if role in werewolfRoles or role in lonerRoles: #if any wolf is found they must be targetted
+                targets.append(player)
+            if role in villagerRoles: #if any villager is found, they must not be targeted
+                list.remove(player)
+        if targets: #if wolves have been found the player will vote among them, if not the vote is normal
+            list = targets
+        return super().vote(list)
+
 
         
 class Werewolf(Player): 
@@ -52,13 +75,23 @@ class Werewolf(Player):
         super().__init__()
         self.role ="Werewolf"
         self.allies = []
-    def vote(self,list):
-        chosenPlayer = self
-        choice = list.index(self)
-        while ((chosenPlayer == self) or not chosenPlayer.alive) or (chosenPlayer in self.allies):
-            choice = randint(0,len(list)-1)
-            chosenPlayer = list[choice]
-        return choice
+    def vote(self,playerList):
+        list = playerList[:]
+        targets = []
+        for player,role in self.memory:
+            if role in lonerRoles:
+                targets.append(player)
+            if player.hasPower:
+                targets.append(player)
+        for a in self.allies:
+            list.remove(a)
+        if targets:
+            list= targets
+        return super().vote(list)
+
+    def forgetDeadPlayers(self):
+        super().forgetDeadPlayers()
+        self.allies[:] =[ally for ally in self.allies if ally.alive] #forget all dead allies
 
 class Ambiguous(Player):
     def __init__(self):
@@ -72,7 +105,6 @@ class Loner(Player):
         self.name = "Loner"
     def vote(self,list):
         pass
-#TODO finish  test FortuneTeller
 
 
 class FortuneTeller(Villager):
@@ -81,10 +113,13 @@ class FortuneTeller(Villager):
         self.role = "Fortune Teller"
         self.hasPower = True
 
-    def tellFortune(self, list):
+    def tellFortune(self, playerList):
+        list = playerList[:]
+        list.remove(self)
         chosenTarget = self
-        while(chosenTarget == self or (chosenTarget, chosenTarget.role) in self.memory):
+        while(chosenTarget == self or (chosenTarget, chosenTarget.role) in self.memory or not chosenTarget.alive):
             chosenTarget = list[randint(0, len(list)-1)]
+        self.memory.append((chosenTarget,chosenTarget.role))
         print("The Fortune Teller saw that " +chosenTarget.name + " is a "+chosenTarget.role)
 
 class Hunter(Villager):
@@ -120,28 +155,52 @@ class Witch(Villager):
         self.healUseChange = 65
         self.poisonVial = True
         self.poisonUseChange = 30
-    def heal(self,victim,victimsList,list):
-        if list[victim] == self:
+
+    def heal(self,victimsList,playerList):
+        list = victimsList[:]
+        victim = None
+        
+        if (self.lover in victimsList) or (self in victimsList):
             self.healthPotion = False
-            print("The witch healed herself")
-            victimsList.remove(victim)
-            return list.index(self)
-        else:
-            if victimsList and randint(0,101) >= self.healUseChange: #if there is a victim she can save it
-                self.healthPotion = False
-                print("The witch healed someone")
+            if victim == self.lover:
+                print("The witch healed her love: "+self.lover.name)
+            else:
+                print("The witch healed herself")
+            victimsList.remove(victimsList)
+            return victim
+        if list and randint(0,101) >= self.healUseChange: #if there is a victim she can save it
+            self.healthPotion = False
+            targets = []
+
+            for player,role in self.memory:
+                if role in villagerRoles and player in list:
+                    targets.append(player)
+                elif role in villagerRoles and player in list:
+                    list.remove(player) #if she knows a werewolf, she will not attempt to heal it
+            if targets: #if she knows villager among the victims she'll heal one
+                victim = targets[randint(0,len(targets)-1)]
+                print("The witch healed a villager "+victim.name)
+                return victim
+            else: #if she don't know anyone, she'll choose randomly  among
+                victim = list[randint(0,len(list)-1)]
+                print("The witch healed "+victim.name)
                 victimsList.remove(victim)
                 return victim
-            else:
-                print("The witch did not use her healing potion")
-                return None
+        else:
+            print("The witch did not use her healing potion")
+            return None
+            
 
-    def poison(self,saved,list):
+    def poison(self,saved,playerList,victimsList=[]): #TODO make use of the victim list if given
         targets = []
+        list = playerList[:]
+        if saved:
+            list.remove(saved)
         for player,role in self.memory: #the witch first targets are the wolves she is aware of
             if role in werewolfRoles:
                 targets.append(player)
-
+            elif role in villagerRoles:
+                list.remove(player)
         if targets: # if she is aware of werewolves the then kill one
             self.poisonVial = False
             print("The witch use poison on a wolf")
@@ -149,13 +208,10 @@ class Witch(Villager):
 
         if randint(0,101)>=self.poisonUseChange: #if she doesn't know any wolf she still can decide to kill someone
             self.poisonVial = False
-            print("The witch killed someone")
-            choice = list.index(self)
             chosenTarget = self
-            while (chosenTarget == self) or (choice == saved) or (not chosenTarget.alive):
-                choice = randint(0,len(list)-1)
-                chosenTarget = list[choice]
-            return choice
+            chosenTarget = super().vote(list)
+            print("The witch killed "+chosenTarget.name)
+            return chosenTarget
         else:
             print("The witch didn't use her poison")
             return None

@@ -32,3 +32,6 @@ Each night she can also use here poison vial to kill someone she suspect
 
 ### 1st night
 - Roles are give
+
+# TODOs
+fix the vote functions
