@@ -21,6 +21,7 @@ class Game:
         self.__lonerAmount = 0
         self.__specialAmount = 0
         self.__turns = 0
+        self.__maxFailedVotes = 20
 
         self.__playerList = []
         self.__presentRoles =[]
@@ -122,34 +123,18 @@ class Game:
     
     def night(self):
         firstNight = self.__turns == 0
-
         if firstNight:
-            p = self.findPlayer("Cupid")
-            if p:
-                p.chooseLovers(self.getPlayerList())
+            self.playerUsePower("Cupid")
 
-        p = self.findPlayer("Fortune Teller")
-        if p:
-            p.tellFortune(self.getPlayerList())
+        self.playerUsePower("Fortune Teller")
+        
         if firstNight:
             self.wolfSetup()
         victim = self.nightVote()
         self.__victimsList.append(victim)
 
-        p = self.findPlayer("Witch")
-        if p:
-            witchSaved = None
-            witchVictim = None
-            if p.healthPotion:
-                witchSaved = p.heal(self.getVictimsList(),self.getPlayerList())
-            if p.poisonVial:
-                if p.healthPotion:
-                    witchVictim = p.poison(witchSaved,self.getPlayerList(),self.getVictimsList())
-                else :
-                    witchVictim = p.poison(witchSaved,self.getPlayerList())
-                if witchVictim:
-                    self.__victimsList.append(witchVictim)
-    
+        self.playerUsePower("Witch")
+
     def wolfSetup(self):
         wolfList = []
         for p in self.__playerList:
@@ -169,7 +154,7 @@ class Game:
             if failedVotes!=0:
                 for player in self.__playerList:
                     player.votes = 0
-            if failedVotes == maxFailedVotes:
+            if failedVotes == self.__maxFailedVotes:
                 raise ValueError("Vote Failed")
             for player in self.__playerList:
                 if player.alive:
@@ -213,20 +198,21 @@ class Game:
             if failedVotes!=0:
                 for player in self.__playerList:
                     player.votes = 0
-            if failedVotes == maxFailedVotes:
+            if failedVotes == self.__maxFailedVotes:
                 raise ValueError("Vote Failed")
             
             for player in self.__playerList:
-                if player.role == "Werewolf" and player.alive:
+                if player.camp == "Werewolf" and player.alive:
                     # print("Player "+player.name+" votes")
                     votedPlayer = player.vote(self.getPlayerList())
                     votedPlayer.votes += 1
             for player in self.__playerList:
-                if player.role == "Villager":
+                if player.camp == "Villager":
                     if player.votes > highestVote:
                         equality = False
                         highestVote = player.votes
                         result = player
+
             for player in self.__playerList:
                 if player.votes == result.votes and player != result:
                     equality = True
@@ -258,7 +244,7 @@ class Game:
                 print("Player " + victim.lover.name + " is now dead and was a " + victim.lover.role)
                 additionalVictims.append(victim.lover)
             if victim.role == "Hunter":
-                hunterVictim = victim.shootOnDeath(self.getPlayerList())
+                hunterVictim = victim.usePower(self)
                 print("On his dying breath, the Hunter killed "+hunterVictim.name)
                 print("Player " + hunterVictim.name + " is now dead and was a " + hunterVictim.role)
                 additionalVictims.append(hunterVictim) 
@@ -290,20 +276,20 @@ class Game:
         for p in self.__playerList:
                 p.forgetDeadPlayers()
     
-    def findPlayer(self,role):
+    def playerUsePower(self,role):
+        player = None
         if role in self.__presentRoles:
             for p in self.__playerList:
                 if p.role == role and p.alive:
-                    return p
-        return None
+                    player = p
+        if player:
+            return player.usePower(self)
     
     def getPlayerList(self):
-        copy = self.__playerList[:]
-        return copy
+        return self.__playerList[:]
     
     def getVictimsList(self):
-        copy = self.__victimsList[:]
-        return copy
+        return self.__victimsList
 
 
 roleList =[

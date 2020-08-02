@@ -1,7 +1,7 @@
 
 from random import randint
-
 class Player:
+    camp = "None"
     def __init__(self):
         self.name =""
         self.role = "role"
@@ -30,7 +30,7 @@ class Player:
             print("("+player.name+","+role+") ",end="")
         print("]")
     def isAlly(self,player):
-        return issubclass(type(super()),type(player.super()))
+        return self.camp == player.camp
 
     def vote(self,playerList):
         choice = -1
@@ -50,9 +50,13 @@ class Player:
 
     def forgetDeadPlayers(self):
         self.memory[:] =[mem for mem in self.memory if mem[0].alive]
+    
+    def usePower(self,game):
+        pass
 
 
 class Villager(Player):
+    camp = "Villager"
     def __init__(self):
         super().__init__()
         self.role = "Villager"
@@ -60,9 +64,11 @@ class Villager(Player):
         list = playerList[:]
         targets = []
         for player,role in self.memory: #if the player now the roles of some other player we must review them first
-            if role in werewolfRoles or role in lonerRoles: #if any wolf is found they must be targetted
+            # if role in werewolfRoles or role in lonerRoles: #if any wolf is found they must be targetted
+            if player.camp != self.camp: #if any wolf is found they must be targetted
                 targets.append(player)
-            if role in villagerRoles: #if any villager is found, they must not be targeted
+            # if role in villagerRoles: #if any villager is found, they must not be targeted
+            else: #if any villager is found, they must not be targeted
                 list.remove(player)
         if targets: #if wolves have been found the player will vote among them, if not the vote is normal
             list = targets
@@ -71,6 +77,7 @@ class Villager(Player):
 
         
 class Werewolf(Player): 
+    camp = "Werewolf"
     def __init__(self):
         super().__init__()
         self.role ="Werewolf"
@@ -79,10 +86,12 @@ class Werewolf(Player):
         list = playerList[:]
         targets = []
         for player,role in self.memory:
-            if role in lonerRoles:
+            if player.camp != self.camp:
                 targets.append(player)
-            if player.hasPower:
-                targets.append(player)
+            # if role in lonerRoles:
+            #     targets.append(player)
+            # if player.hasPower:
+            #     targets.append(player)
         for a in self.allies:
             list.remove(a)
         if targets:
@@ -94,12 +103,14 @@ class Werewolf(Player):
         self.allies[:] =[ally for ally in self.allies if ally.alive] #forget all dead allies
 
 class Ambiguous(Player):
+    camp = "Ambiguous"
     def __init__(self):
         super().__init__()
         self.name = "Ambiguous"
     def vote(self,list):
         pass
 class Loner(Player):
+    camp = "Loner"
     def __init__(self):
         super().__init__()
         self.name = "Loner"
@@ -112,7 +123,6 @@ class FortuneTeller(Villager):
         super().__init__()
         self.role = "Fortune Teller"
         self.hasPower = True
-
     def tellFortune(self, playerList):
         list = playerList[:]
         list.remove(self)
@@ -121,6 +131,10 @@ class FortuneTeller(Villager):
             chosenTarget = list[randint(0, len(list)-1)]
         self.memory.append((chosenTarget,chosenTarget.role))
         print("The Fortune Teller saw that " +chosenTarget.name + " is a "+chosenTarget.role)
+    
+    def usePower(self,game):
+        if self.hasPower:
+            self.tellFortune(game.getPlayerList())
 
 class Hunter(Villager):
     def __init__(self):
@@ -131,6 +145,11 @@ class Hunter(Villager):
     def shootOnDeath(self,list):
         print("The Hunter shoot someone on is dying breath")
         return self.vote(list) 
+    
+    def usePower(self,game):
+        if self.hasPower:
+            return self.shootOnDeath(game.getPlayerList())
+
 
 class Cupid(Villager):
     def __init__(self):
@@ -145,6 +164,9 @@ class Cupid(Villager):
         loverA.lover = loverB
         loverB.lover = loverA
         print(loverA.name +" and "+loverB.name+" are lovers")
+    def usePower(self,game):
+        if self.hasPower:
+            self.chooseLovers(game.getPlayerList())
 
 class Witch(Villager):
     def __init__(self):
@@ -173,9 +195,9 @@ class Witch(Villager):
             targets = []
 
             for player,role in self.memory:
-                if role in villagerRoles and player in list:
+                if player.camp== self and player in list:
                     targets.append(player)
-                elif role in villagerRoles and player in list:
+                elif player.camp!= self and player in list:
                     list.remove(player) #if she knows a werewolf, she will not attempt to heal it
             if targets: #if she knows villager among the victims she'll heal one
                 victim = targets[randint(0,len(targets)-1)]
@@ -197,9 +219,9 @@ class Witch(Villager):
         if saved:
             list.remove(saved)
         for player,role in self.memory: #the witch first targets are the wolves she is aware of
-            if role in werewolfRoles:
+            if player.camp != self.camp:
                 targets.append(player)
-            elif role in villagerRoles:
+            elif player.camp == self.camp:
                 list.remove(player)
         if targets: # if she is aware of werewolves the then kill one
             self.poisonVial = False
@@ -215,6 +237,26 @@ class Witch(Villager):
         else:
             print("The witch didn't use her poison")
             return None
+    
+    def usePower(self,game):
+        if self.hasPower:
+            witchSaved = None
+            witchVictim = None
+            playerList = game.getPlayerList()
+            victims = game.getVictimsList()
+
+            if self.healthPotion:
+                witchSaved = self.heal(victims,playerList)
+            if self.poisonVial:
+                if self.healthPotion:
+                    witchVictim = self.poison(witchSaved,playerList,victims)
+                else:
+                    witchVictim = self.poison(witchSaved,playerList)
+                if witchVictim:
+                    victims.append(witchVictim)
+            if not self.healthPotion and not self.poisonVial:
+                self.hasPower = False
+
 villagerRoles = {
     "Villager":Villager,
     "Villager-Villager":Player,
