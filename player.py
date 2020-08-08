@@ -1,6 +1,13 @@
 
 # TODO manage situation when lovers are from Villager and Werewolf camp and are last alive wih another player
 from random import randint
+from enum import Enum
+class Camp(Enum):
+    VILLAGERS = 0
+    WEREWOLVES = 1
+    AMBIGUOUS = 2
+    LONERS = 3
+    NONE = 4
 
 
 class Player:
@@ -8,7 +15,7 @@ class Player:
         Every Player possess:
 
         - name (str) : a name
-        - camp (str) : indicates to which a player belong
+        - camp (Camp) : indicates to which a player belong
         - role (str): a role,
         - votes (int): the amount a voice against him during votes
         - alive (bool) : a boolean representing whether the player is alive or not
@@ -24,7 +31,7 @@ class Player:
         """Constructor.
         """
         self.name = ""
-        self.camp = "None"
+        self.camp = Camp.NONE
         self.role = "role"
         self.votes = 0
         self.alive = True
@@ -97,7 +104,7 @@ class Player:
 
 
 class Villager(Player):
-    """Defines a Villager player
+    """Defines a Villager player. Must kill all the Werewolves
         Possess the same data as a Player.
     """
 
@@ -106,7 +113,7 @@ class Villager(Player):
         """
         super().__init__()
         self.role = "Villager"
-        self.camp = "Villagers"
+        self.camp = Camp.VILLAGERS
     def vote(self, playerList):
         """Vote against a player from a list. Prunes the list to only select valid targets then use parent method.
 
@@ -137,7 +144,7 @@ class Villager(Player):
 
 
 class Werewolf(Player):
-    """Defines a Werewolf Player
+    """Defines a Werewolf Player. Must kill all the Villagers
         Possess the same data as a Player, with the following addition:
 
         allies(list) : a list containing all the current werewolf allies. Filled during the first night.
@@ -147,7 +154,7 @@ class Werewolf(Player):
         """
         super().__init__()
         self.role = "Werewolf"
-        self.camp = "Werewolves"
+        self.camp = Camp.WEREWOLVES
         self.allies = []
 
     def vote(self, playerList,night=False):
@@ -203,7 +210,7 @@ class Ambiguous(Player):
         """
         super().__init__()
         self.name = "Ambiguous"
-        self.camp ="Ambiguous"
+        self.camp = Camp.AMBIGUOUS
 
     def vote(self, list):
         pass
@@ -215,14 +222,15 @@ class Loner(Player):
         """
         super().__init__()
         self.name = "Loner"
-        self.camp = "Loners"
+        self.camp = Camp.LONERS
 
     def vote(self, list):
         pass
 
 
 class FortuneTeller(Villager):
-    """Defines a Fortune Teller. Has a power
+    """Defines a Fortune Teller. Can learn roles from other players.
+    Has a power
     """
     def __init__(self):
         """Constructor.
@@ -261,7 +269,8 @@ class FortuneTeller(Villager):
 
 
 class Hunter(Villager):
-    """Defines a Hunter. Has a power.
+    """Defines a Hunter. Kills someone on death.
+    Has a power.
     """
     def __init__(self):
         """Constructor;
@@ -273,7 +282,8 @@ class Hunter(Villager):
 
 
 class Cupid(Villager):
-    """Defines a Cupid. Has a power
+    """Defines a Cupid. Can charm two player to make them lovers.
+    Has a power
     """
     def __init__(self):
         """Constructor method
@@ -307,7 +317,8 @@ class Cupid(Villager):
 
 
 class Witch(Villager):
-    """Defines a Witch. Has a power. Additionnal data:
+    """Defines a Witch. Have two potions, one to save, the other to kill.
+    Has a power. Additionnal data:
 
         - healthPotion(bool) : a boolean that states if the Witch can still use it's health potion
         - poisonVial(bool) : a boolean that states if the Witch can still use it's poison
@@ -436,8 +447,35 @@ class Witch(Villager):
                     victims.append(witchVictim)
             if not self.healthPotion and not self.poisonVial:
                 self.hasPower = False
-# ! crash on adding this role
-class VillagerVillager(Villager):
+
+class LittleGirl(Villager):
+    """Defines a Little Girl Player. Can try to observer who are the werewolves
+    Has a power.
+    Data:
+
+    - chanceToSpy(int) : chance value the little girl has to spy on wolves.
+    - chanceToGetCaught(int) : chance value the little girl has to be caught by wolves
+    """
+    def __init__(self):
+        """Constructor
+        """
+        super().__init__()
+        self.role = "Little Girl"
+        self.hasPower = "True"
+        self.chanceToSpy = 50
+        self.chanceToBeCaught = 0
+    def usePower(self,game):
+        """Power invokinkg method
+        """
+        self.spyOnWolves(game.getPlayerList(),game.getWerewolvesAmount())
+    def spyOnWolves(self,playerList,wolvesAmount):
+        pass
+        
+
+
+class VillagerVillager(Villager): # todo adapt wolves votes to not always eliminate this player on the first night
+    """Defines a Villager-Villager Player. His role is know by everyone at the start of the game.
+    """
     def __init__(self):
         super().__init__()
         self.role = "Villager-Villager"

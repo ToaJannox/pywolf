@@ -5,7 +5,6 @@ from enum import Enum
 from time import sleep
 import os
 
-# todo fix a bug when voting returns None for Werewolves
 class Phase(Enum):
     """Defines an enum for the game differents phases
     """
@@ -56,6 +55,8 @@ class Game:
     def setup(self, roleList):
         """Set the games up
         """
+        os.system('cls' if os.name =='nt' else 'clear')
+        print("Game Informations")
         self.__playerList.clear()
         for role, amount in roleList:
             if role in villagerRoles:
@@ -94,13 +95,14 @@ class Game:
         """
         self.__running = True
         while self.__running:
+            print("#=================================================================================#")
             if self.__phase == Phase.SETUP:
                 print("Setup - Turn " + str(self.__turns))
                 self.playerUsePower("Villager-Villager")
                 print("-----------------------------------")
                 self.__phase = Phase.NIGHT
             elif self.__phase == Phase.NIGHT:
-                if self.__turns == 0:
+                if self.__turns == 0: 
                     print("First Night - Turn " + str(self.__turns))
                 else:
                     print("Night - Turn " + str(self.__turns))
@@ -114,36 +116,20 @@ class Game:
                 self.__turns += 1
                 self.__phase = Phase.NIGHT
             self.killVictims()
+
             self.updatePlayers()
+
             self.__victimsList.clear()
             if self.__victimsList:
                 raise ValueError("List should be clear", self.__victimsList)
-            if self.__villagerAmount == 0 or self.__werewolfAmount == 0 or (self.__villagerAmount == 1 and self.__werewolfAmount==1):
-                self.__running = False
-            print("-----------------------------------")
-            print("Remaining players: ", end="")
-            print("\tvillagers:" + str(self.__villagerAmount), end="")
-            print("\twolves:" + str(self.__werewolfAmount), end="")
-            print("\tloners:" + str(self.__lonerAmount), end="")
-            print("\tambiguous:" + str(self.__ambiguousAmount), end="")
-            print("\tspecials:" + str(self.__specialAmount))
-            print("-----------------------------------")
-            for p in self.__playerList:
-                p.display()
-                p.votes = 0
-            print("+---------------------------------+")
+            
+            self.checkGameEndConditions()
+            print("#===================================Game===Status=================================#")
+            self.displayGameStatus()
+            print("#=================================================================================#")
             input("Press any key to continue...")
-            # os.system('cls' if os.name =='nt' else 'clear')
-            print("+---------------------------------+")
-        os.system('cls' if os.name == 'nt' else 'clear')
-        print("Game ended")
-        print("Villager alive " + str(self.__villagerAmount))
-        print("Werewolves alive " + str(self.__werewolfAmount))
-
-        if (self.__villagerAmount == 0) or (self.__villagerAmount == 1 and self.__werewolfAmount==1):
-            print("The wolves have won!!")
-        elif self.__werewolfAmount == 0:
-            print("The villagers have won!!")
+            os.system('cls' if os.name =='nt' else 'clear')
+        self.gameEnd()
 
     def day(self):
         """Process day actions. Mainly call for villagers to vote for a victim to eliminate.
@@ -168,9 +154,11 @@ class Game:
         self.playerUsePower("Witch")
 
     def wolfSetup(self):
+        """Called during the first night. Allows Werewolves to know each others.
+        """
         wolfList = []
         for p in self.__playerList:
-            if p.role in werewolfRoles:
+            if p.camp == Camp.WEREWOLVES:
                 wolfList.append(p)
         for p in wolfList:
             p.allies = [a for a in wolfList if a != p]
@@ -238,13 +226,13 @@ class Game:
             if failedVotes == self.__maxFailedVotes:
                 print("The werewolf finally decided")
             for player in self.__playerList:
-                if player.camp == "Werewolf" and player.alive:
+                if player.camp == Camp.WEREWOLVES and player.alive:
                     votedPlayer = player.vote(self.getPlayerList(),True)
                     if not votedPlayer:
                         continue
                     votedPlayer.votes += 1
             for player in self.__playerList:
-                if player.camp == "Villager":
+                if player.camp == Camp.VILLAGERS:
                     if player.votes > highestVote:
                         equality = False
                         highestVote = player.votes
@@ -298,17 +286,27 @@ class Game:
             if victim.lover:
                 if victim.lover.alive:
                     print(victim.name + " lover: " + victim.lover.name + ", followed his love in death")
-                    print("Player " + victim.lover.name + " is now dead and was a " + victim.lover.role)
                     additionalVictims.append(victim.lover)
             if victim.role == "Hunter":
                 hunterVictim = victim.vote(potentialVictims)
                 print("On his dying breath, the Hunter killed " + hunterVictim.name)
-                print("Player " + hunterVictim.name + " is now dead and was a " + hunterVictim.role)
                 additionalVictims.append(hunterVictim)
         self.__victimsList.clear()
         addVictims.clear()
         if additionalVictims:
             self.killVictims(additionalVictims)
+    def gameEnd(self):
+        """Called when game ends. Displays which camp won;
+        """
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print("Game ended")
+        print("Villager alive " + str(self.__villagerAmount))
+        print("Werewolves alive " + str(self.__werewolfAmount))
+
+        if (self.__villagerAmount == 0) or (self.__villagerAmount == 1 and self.__werewolfAmount==1):
+            print("The wolves have won!!")
+        elif self.__werewolfAmount == 0:
+            print("The villagers have won!!")
 
     def updatePlayers(self):
         """Updates the currents stats about player in game and Players themselves;
@@ -364,21 +362,40 @@ class Game:
             if p != player:
                 p.memory.append((player,player.role))
     def getPlayerList(self):
-        """
-        Returns:
-
-        - list: list of Player currently in this game
-        """
         return self.__playerList[:]
 
     def getVictimsList(self):
-        """
-        Returns:
-
-        - list : list of Player currently designated as victims during the current turn
-        """
         return self.__victimsList
+    def getVillagersAmount(self):
+        return self.__villagerAmount
+    def getWereWolvesAmount(self):
+        return self.__werewolfAmount
+    def getLonersAmount(self):
+        return self.__lonerAmount
+    def displayGameStatus(self):
+        """Displays current  game informations:
 
+            - Amount of players from each camp
+
+            - Each player status, role, name and memory
+        """
+        print("-----------------------------------")
+        print("Remaining players: ", end="")
+        print("\tvillagers:" + str(self.__villagerAmount), end="")
+        print("\twolves:" + str(self.__werewolfAmount), end="")
+        print("\tloners:" + str(self.__lonerAmount), end="")
+        print("\tambiguous:" + str(self.__ambiguousAmount), end="")
+        print("\tspecials:" + str(self.__specialAmount))
+        print("-----------------------------------")
+        for p in self.__playerList:
+            p.display()
+            p.votes = 0
+        
+    def checkGameEndConditions(self):
+        """Checks whether or not the game can be ended or not.
+        """
+        if self.__villagerAmount == 0 or self.__werewolfAmount == 0 or (self.__villagerAmount == 1 and self.__werewolfAmount==1):
+                self.__running = False
 
 roleList = [
     ("Werewolf", 4),
@@ -386,11 +403,9 @@ roleList = [
     ("Fortune Teller",1),
     ("Hunter",1),
     ("Witch",1),
-    ("Cupid",1)
+    ("Cupid",1),
 ]
 g = Game()
-# os.system('cls' if os.name =='nt' else 'clear')
 g.setup(roleList)
-print("+---------------------------------+")
 g.play()
 []
