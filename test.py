@@ -106,18 +106,39 @@ class WerewolfTest(TestCase):
         l2 = Werewolf()
         l1.lover = l2
         l2.lover = l1
-        w = Werewolf()
-        v = Villager()
-
+        w = []
+        v = []
+        for _ in range(0,4):
+            w.append(Werewolf())
+        for _ in range(0,10):
+            v.append(Villager())
+        # testing that a villager lover can betray correctly it's fellow villagers to save his love
         g = Game(verbose=False)
         g.addPlayer(l1)
         g.addPlayer(l2)
-        g.addPlayer(v)
-        for _ in range(0,1000):
-            self.assertEqual(v , l1.vote(g.getPlayerList()) )
-            self.assertEqual(v , l2.vote(g.getPlayerList()) )
+        for p in v :
+            g.addPlayer(p)
 
-        # g = Game(verbose=False)
+        for _ in range(0,1000):
+            t1 = l1.vote(g.getPlayerList())
+            t2 = l2.vote(g.getPlayerList())
+            self.assertTrue(t1 in v)
+            self.assertTrue(t2 in v)
+        # testing that a wolf lover can betray correctly it's fellow wolves to save his love
+        g = Game(verbose=False)
+        g.addPlayer(l1)
+        g.addPlayer(l2)
+        for p in w :
+            g.addPlayer(p)
+
+        for _ in range(0,1000):
+            t1 = l1.vote(g.getPlayerList())
+            t2 = l2.vote(g.getPlayerList())
+            self.assertTrue(t1 in w)
+            self.assertTrue(t2 in w)
+        for _ in range(0,1000):
+            t = l2.vote(g.getPlayerList(),True)
+            self.assertTrue(t in w)
 
         print("testLoverCriticalVote passed")
     
