@@ -166,12 +166,9 @@ class Game:
     def wolfSetup(self):
         """Called during the first night. Allows Werewolves to know each others.
         """
-        wolfList = []
         for p in self.__playerList:
             if p.camp == Camp.WEREWOLVES:
-                wolfList.append(p)
-        for p in wolfList:
-            p.allies = [a for a in wolfList if a != p]
+                p.registerAllies(self.__playerList)
 
     def dayVote(self):
         """Handles the vote during day.
@@ -381,7 +378,7 @@ class Game:
         """
         for p in self.__playerList:
             if p != player:
-                p.memory.append((player,player.role))
+                p.memories.append(Memory(player,player.role))
     def getPlayerList(self):
         return self.__playerList[:]
     def addPlayer(self,player):

@@ -9,6 +9,11 @@ class Camp(Enum):
     LONERS = 3
     NONE = 4
 
+class Memory:
+    def __init__(self,player,role="",camp=Camp.NONE):
+        self.player = player
+        self.role = role
+        self.camp = camp
 
 class Player:
     """Defines a generic player.
@@ -26,7 +31,7 @@ class Player:
     
 
     """
-
+    color = ""
     def __init__(self):
         """Constructor.
         """
@@ -37,10 +42,9 @@ class Player:
         self.alive = True
         self.hasPower = False
         self.isCaptain = False
-        self.memory = []
+        self.memories = []
         self.lover = None
         self.deathAnnounced = False
-
     def display(self):
         """Displays current player informations.
         
@@ -51,17 +55,20 @@ class Player:
         print(self.name, end="")
         print("\tVotes: ", str(self.votes), end="")
         if not self.alive:
-            print(" ✝ ", end="")
+            print(" \033[90m✝\033[m ", end="")
         else:
             print("   ", end="")
         if self.lover:
-            print(" ❤ ", end="")
+            print(" \033[38;5;199m❤\033[m ", end="")
         else:
             print("   ", end="")
-        print("\t(" + self.role + ")")
+        print("\t(" +self.color+ self.role + "\033[m)")
         print("Memory: [", end="")
-        for player, role in self.memory:
-            print("(" + player.name + "," + role + ") ", end="")
+        for mem in self.memories:
+            if mem.camp == Camp.NONE:
+                print("("+mem.player.color + mem.player.name + "," + mem.role +"\033[m) ", end="")
+            else:
+                print("("+mem.player.color + mem.player.name + "," + mem.role + ","+str(mem.camp)+ "\033[m) ", end="")
         print("]")
 
     def isAlly(self, player):
@@ -96,12 +103,11 @@ class Player:
             choice = randint(0, len(targetList) - 1)
             chosenPlayer = targetList[choice]
         return chosenPlayer
-
     def forgetDeadPlayers(self):
         """Remove tuples containing dead player from current player memory
         """"""Remove tuples containing dead player from current player memory
         """
-        self.memory[:] = [mem for mem in self.memory if mem[0].alive]
+        self.memories[:] = [mem for mem in self.memories if mem.player.alive]
     def usePower(self, game):
         """Use current player power to influence the game
         """
@@ -109,6 +115,7 @@ class Player:
 
 
 class Villager(Player):
+    color = "\033[32m"
     """Defines a Villager player. Must kill all the Werewolves
         Possess the same data as a Player.
     """
@@ -133,19 +140,20 @@ class Villager(Player):
         """
         targetList = [p for p in playerList if p.alive]
         priorityTargets = []
-        if not self.memory: # if memory is empty, vote with the rest of the list
+        if not self.memories: # if memory is empty, vote with the rest of the list
             return super().vote(targetList)
         
         loverCriticalChoice = False
         
-        for player,role in self.memory:
-            if player.camp == Camp.WEREWOLVES: # check for wolves
-                if player != self.lover: # make sure the wolf isn't the Villager lover
-                    priorityTargets.append(player)
+        for mem in self.memories:
+            if mem.camp == Camp.WEREWOLVES: # check for wolves
+                if mem.player != self.lover: # make sure the wolf isn't the Villager lover
+                    priorityTargets.append(mem.player)
                 else: #if the player lovers is a wolf, he might have to betray his allies
                     loverCriticalChoice = True
-            elif player.camp == Camp.VILLAGERS: #remove villagers from potential targets
-                targetList.remove(player)
+            elif mem.camp == Camp.VILLAGERS: #remove villagers from potential targets
+                if mem.player in targetList:
+                    targetList.remove(mem.player)
         if priorityTargets:# if wolves have been identified they must be eliminated
             targetList = priorityTargets
         elif not priorityTargets and loverCriticalChoice:# if the only wolf left is the player lover then he must targets his fellow villagers anyway
@@ -159,13 +167,13 @@ class Werewolf(Player):
 
         allies(list) : a list containing all the current werewolf allies. Filled during the first night.
     """
+    color = "\033[31m"
     def __init__(self):
         """Constructor.
         """
         super().__init__()
         self.role = "Werewolf"
         self.camp = Camp.WEREWOLVES
-        self.allies = []
 
     def vote(self, playerList,night=False):
         """Vote against a player from a list. Prunes the list to only select valid targets then use parent method.
@@ -184,38 +192,31 @@ class Werewolf(Player):
         """
         targetList = [p for p in playerList if p.alive]
         priorityTargets = []
-        if not self.memory: # if memory is empty, vote with the rest of the list minus the wolves allies
-            for p in self.allies:
-                targetList.remove(p)
-            return super().vote(targetList)
-            
         loverCriticalChoice = False
-        
-        for player,role in self.memory:
-            if player.camp == Camp.VILLAGERS: # check for Villagers
-                if player != self.lover: # make sure the wolf isn't the Villager lover
-                    priorityTargets.append(player)
-                else: #if the player lovers is a villagers, he might have to betray his allies
+        if not self.memories: # if memory is empty, vote with the rest of the list minus the wolves allies
+            return super().vote(targetList)
+        for mem in self.memories:
+            if mem.camp == Camp.VILLAGERS: # check for Villagers
+                if mem.player == self.lover: #if the player lovers is a villagers, he might have to betray his allies
                     loverCriticalChoice = True
-            elif player in self.allies: #remove allies from potential targets
-                targetList.remove(player)
+                else: # make sure the wolf isn't the Villager lover 
+                    priorityTargets.append(mem.player)
+            elif mem.camp == Camp.WEREWOLVES: #remove allies from potential targets
+                if mem.player in targetList:
+                    targetList.remove(mem.player)
         if priorityTargets:# if villagers have been identified they must be eliminated
             targetList = priorityTargets
         elif not priorityTargets and loverCriticalChoice:# if the only villagers left is the player lover then he must targets his fellow wolves anyway
             if not night: # a wolf can betray his allies only during day
-                targetList = self.allies
+                targetList = [x for x in self.memories if mem.camp==Camp.WEREWOLVES]
             else: # during night he can't vote (the vote will be the majority among wolves)
                 return None
         return super().vote(targetList)
-        
 
-    def forgetDeadPlayers(self):
-        """Remove tuples containing dead players from current player memory
-            Addtionnaly removes all dead allies from current werewolf list
-        """
-        super().forgetDeadPlayers()
-        # forget all dead allies
-        self.allies[:] = [ally for ally in self.allies if ally.alive]
+    def registerAllies(self,playerList):
+        for p in playerList:
+            if p !=self and p.camp==Camp.WEREWOLVES:
+                self.memories.append(Memory(p,role="",camp=Camp.WEREWOLVES))
 
 
 class Ambiguous(Player):
@@ -248,6 +249,7 @@ class FortuneTeller(Villager):
     """Defines a Fortune Teller. Can learn roles from other players.
     Has a power
     """
+    color = "\033[38;5;128m"
     def __init__(self):
         """Constructor.
         """
@@ -262,13 +264,13 @@ class FortuneTeller(Villager):
 
         playerList(list): list of player which to choose from
         """
-        list = playerList[:]
-        list.remove(self)
+        targetList = playerList[:]
+        targetList.remove(self)
         chosenTarget = self
-        if len(self.memory) != len(list):
-            while chosenTarget == self or (chosenTarget, chosenTarget.role) in self.memory or not chosenTarget.alive:
-                chosenTarget = list[randint(0, len(list) - 1)]
-            self.memory.append((chosenTarget, chosenTarget.role))
+        if len(self.memories) != len(targetList):
+            while chosenTarget == self or chosenTarget in [x.player for x in self.memories]:
+                chosenTarget = targetList[randint(0, len(targetList) - 1)]
+            self.memories.append(Memory(chosenTarget,role=chosenTarget.role))
             print("The Fortune Teller saw that " +
                 chosenTarget.name + " is a " + chosenTarget.role)
         else:
@@ -288,6 +290,7 @@ class Hunter(Villager):
     """Defines a Hunter. Kills someone on death.
     Has a power.
     """
+    color = "\033[38;5;58m"
     def __init__(self):
         """Constructor;
         """
@@ -301,6 +304,7 @@ class Cupid(Villager):
     """Defines a Cupid. Can charm two player to make them lovers.
     Has a power
     """
+    color = "\033[38;5;213m"
     def __init__(self):
         """Constructor method
         """
@@ -341,6 +345,7 @@ class Witch(Villager):
         - healUseChance(int) : chance that the witch will use it's health potion on a victim except her and it's lover
         - poisonUseChance(int) : chance that the witch will use it's poison on a random player
     """
+    color = "\033[38;5;202m"
     def __init__(self):
         """Constructor.
         """
@@ -364,35 +369,36 @@ class Witch(Villager):
             NoneType : if the witch saves no one
             Player: the victim the witch saves
         """
-        list = victimsList[:]
-        victim = None
+        targetList = victimsList[:]
+        victim = None # ! fix this the victim is always set to None
 
         if (self.lover in victimsList) or (self in victimsList):
             self.healthPotion = False
             if victim == self.lover and victim:
                 print("The witch healed her love: " + self.lover.name)
                 victimsList.remove(self.lover)
+                return victim
             elif victim == self:
                 print("The witch healed herself")
                 victimsList.remove(self)
-            return victim
+                return victim
         # if there is a victim she can save it
-        if list and randint(0, 101) >= self.healUseChance:
+        if targetList and randint(0, 101) >= self.healUseChance:
             self.healthPotion = False
-            targets = []
+            priorityTargets = []
 
-            for player, role in self.memory:
-                if player.camp == self and player in list:
-                    targets.append(player)
-                elif player.camp != self and player in list:
+            for mem in self.memories:
+                if mem.camp == Camp.VILLAGERS and mem.player in targetList:
+                    priorityTargets.append(mem.player)
+                elif mem.camp != Camp.WEREWOLVES and mem.player in targetList:
                     # if she knows a werewolf, she will not attempt to heal it
-                    list.remove(player)
-            if targets:  # if she knows villager among the victims she'll heal one
-                victim = targets[randint(0, len(targets) - 1)]
+                    targetList.remove(mem.player)
+            if priorityTargets:  # if she knows villager among the victims she'll heal one
+                victim = priorityTargets[randint(0, len(priorityTargets) - 1)]
                 print("The witch healed a villager " + victim.name)
                 return victim
             else:  # if she don't know anyone, she'll choose randomly  among
-                victim = list[randint(0, len(list) - 1)]
+                victim = targetList[randint(0, len(targetList) - 1)]
                 print("The witch healed " + victim.name)
                 victimsList.remove(victim)
                 return victim
@@ -412,27 +418,22 @@ class Witch(Villager):
         victimsList(list) : a list of player that were designated as victims. Only available if the witch's health potion is still available;
             default value is an empty list.
         """
-        targets = []
-        list = playerList[:]
+        targetList = playerList[:]
         if saved:
-            list.remove(saved)
-        for player, role in self.memory:  # the witch first targets are the wolves she is aware of
-            if player.camp != self.camp:
-                targets.append(player)
-            elif player.camp == self.camp:
-                list.remove(player)
-        if targets:  # if she is aware of werewolves the then kill one
-            self.poisonVial = False
-            print("The witch use poison on a wolf")
-            return targets[randint(0, len(targets) - 1)]
+            targetList.remove(saved)
         if victimsList:
+            print("The Witch can see the victims")
             for v in victimsList:
-                list.remove(v)
+                v.display()
+                if v in targetList:
+                    targetList.remove(v)
+        if self.memories:
+            return super().vote(targetList)
         # if she doesn't know any wolf she still can decide to kill someone
         if randint(0, 101) >= self.poisonUseChance:
             self.poisonVial = False
             chosenTarget = self
-            chosenTarget = super().vote(list)
+            chosenTarget = super().vote(targetList)
             print("The witch killed " + chosenTarget.name)
             return chosenTarget
         else:
@@ -472,6 +473,7 @@ class LittleGirl(Villager):
     - chanceToSpy(int) : chance value the little girl has to spy on wolves.
     - chanceToGetCaught(int) : chance value the little girl has to be caught by wolves
     """
+    
     def __init__(self):
         """Constructor
         """
@@ -492,6 +494,7 @@ class LittleGirl(Villager):
 class VillagerVillager(Villager): # todo adapt wolves votes to not always eliminate this player on the first night
     """Defines a Villager-Villager Player. His role is know by everyone at the start of the game.
     """
+    color = "\033[38;5;119m"
     def __init__(self):
         super().__init__()
         self.role = "Villager-Villager"

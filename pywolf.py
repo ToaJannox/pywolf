@@ -6,6 +6,7 @@ roleList = [
     ("Hunter",1),
     ("Witch",1),
     ("Cupid",1),
+    ("Villager-Villager",1)
 ]
 g = Game()
 g.setup(roleList)
