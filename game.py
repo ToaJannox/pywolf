@@ -32,7 +32,7 @@ class Game:
     - __running(bool) : running status of the game
 
     """
-    def __init__(self):
+    def __init__(self,verbose=True):
         """Constructor.
         """
         self.__playerAmount = 0
@@ -51,39 +51,40 @@ class Game:
         self.__phase = Phase.SETUP
 
         self.__running = False
+        self.__verbose = verbose
 
     def setup(self, roleList):
         """Set the games up
         """
-        os.system('cls' if os.name =='nt' else 'clear')
-        print("Game Informations")
+        if self.__verbose:
+            os.system('cls' if os.name =='nt' else 'clear')
+            print("Game Informations")
         self.__playerList.clear()
         for role, amount in roleList:
             if role in villagerRoles:
                 self.__villagerAmount += amount
                 for i in range(0, amount):
-                    self.__playerList.append(villagerRoles[role]())
+                    self.addPlayer(villagerRoles[role]())
             elif role in werewolfRoles:
                 self.__werewolfAmount += amount
                 for i in range(0, amount):
-                    self.__playerList.append(werewolfRoles[role]())
+                    self.addPlayer(werewolfRoles[role]())
             elif role in ambiguousRoles:
                 self.__ambiguousAmount += amount
                 for i in range(0, amount):
-                    self.__playerList.append(ambiguousRoles[role]())
+                    self.addPlayer(ambiguousRoles[role]())
             elif role in lonerRoles:
                 self.__lonerAmount += amount
                 for i in range(0, amount):
-                    self.__playerList.append(lonerRoles[role]())
+                    self.addPlayer(lonerRoles[role]())
             elif role in specialRoles:
                 self.__specialAmount += amount
                 for i in range(0, amount):
-                    self.__playerList.append(specialRoles[role]())
-            else:  # if role is unknown put villager instead
+                    self.addPlayer(specialRoles[role]())
+            else:
                 raise ValueError("Unknown role", role)
-            if role not in self.__presentRoles:
-                self.__presentRoles.append(role)
-            print(str(amount) + " * " + role)
+            if self.__verbose:
+                print(str(amount) + " * " + role)
         shuffle(self.__playerList)
         i = 0
         for player in self.__playerList:
@@ -95,23 +96,30 @@ class Game:
         """
         self.__running = True
         while self.__running:
-            print("#=================================================================================#")
+            if self.__verbose:
+                print("#=================================================================================#")
             if self.__phase == Phase.SETUP:
-                print("Setup - Turn " + str(self.__turns))
+                if self.__verbose:
+                    print("Setup - Turn " + str(self.__turns))
                 self.playerUsePower("Villager-Villager")
-                print("-----------------------------------")
+                if self.__verbose:
+                    print("-----------------------------------")
                 self.__phase = Phase.NIGHT
             elif self.__phase == Phase.NIGHT:
-                if self.__turns == 0: 
-                    print("First Night - Turn " + str(self.__turns))
+                if self.__turns == 0:
+                    if self.__verbose: 
+                        print("First Night - Turn " + str(self.__turns))
                 else:
-                    print("Night - Turn " + str(self.__turns))
-                print("-----------------------------------")
+                    if self.__verbose:
+                        print("Night - Turn " + str(self.__turns))
+                if self.__verbose:
+                    print("-----------------------------------")
                 self.night()
                 self.__phase = Phase.DAY
             elif self.__phase == Phase.DAY:
-                print("Day - Turn " + str(self.__turns))
-                print("-----------------------------------")
+                if self.__verbose:
+                    print("Day - Turn " + str(self.__turns))
+                    print("-----------------------------------")
                 self.day()
                 self.__turns += 1
                 self.__phase = Phase.NIGHT
@@ -124,12 +132,14 @@ class Game:
                 raise ValueError("List should be clear", self.__victimsList)
             
             self.checkGameEndConditions()
-            print("#===================================Game===Status=================================#")
-            self.displayGameStatus()
-            print("#=================================================================================#")
-            input("Press any key to continue...")
-            os.system('cls' if os.name =='nt' else 'clear')
-        self.gameEnd()
+            if self.__verbose:
+                print("#===================================Game===Status=================================#")
+                self.displayGameStatus()
+                print("#=================================================================================#")
+                input("Press any key to continue...")
+                os.system('cls' if os.name =='nt' else 'clear')
+        if self.__verbose:                
+            self.gameEnd()
 
     def day(self):
         """Process day actions. Mainly call for villagers to vote for a victim to eliminate.
@@ -166,7 +176,8 @@ class Game:
     def dayVote(self):
         """Handles the vote during day.
         """
-        print("The village is deciding who it will eliminate")
+        if self.__verbose:
+            print("The village is deciding who it will eliminate")
         voteDone = False
         failedVotes = 0
         while not voteDone:
@@ -201,19 +212,21 @@ class Game:
                 # print("\tPlayer " + result.name + " was the chosen player")
                 failedVotes += 1
             elif not result.alive:
-                print("Victim chosen among the deads! Vote Restarts!!")
-                print("\tThe chosen victim: " + result.name + " is already dead!")
+                if self.__verbose:
+                    print("Victim chosen among the deads! Vote Restarts!!")
+                    print("\tThe chosen victim: " + result.name + " is already dead!")
                 failedVotes += 1
             else:
                 voteDone = True
-
-        print("Chosen villager: " + result.name + " with " + str(result.votes) + " votes")
+        if self.__verbose:
+            print("Chosen villager: " + result.name + " with " + str(result.votes) + " votes")
         return result
 
     def nightVote(self):
         """Handles the werewolves votes during night
         """
-        print("The Werewolves are choosing their victim!")
+        if self.__verbose:
+            print("The Werewolves are choosing their victim!")
         voteDone = False
         failedVotes = 0
         while not voteDone:
@@ -224,7 +237,8 @@ class Game:
                 for player in self.__playerList:
                     player.votes = 0
             if failedVotes == self.__maxFailedVotes:
-                print("The werewolf finally decided")
+                if self.__verbose:
+                    print("The werewolf finally decided")
             for player in self.__playerList:
                 if player.camp == Camp.WEREWOLVES and player.alive:
                     votedPlayer = player.vote(self.getPlayerList(),True)
@@ -246,15 +260,18 @@ class Game:
                 # print("\tPlayer " + result.name + " was the chosen player")
                 failedVotes += 1
             if not result:
-                print("No Victim was chosen. Vote Restarts!!")
+                if self.__verbose:
+                    print("No Victim was chosen. Vote Restarts!!")
                 failedVotes+=1
             elif not result.alive:
-                print("Victim chosen among the deads! Vote Restarts!!")
-                print("\tThe chosen victim: " + result.name + " is already dead!")
+                if self.__verbose:
+                    print("Victim chosen among the deads! Vote Restarts!!")
+                    print("\tThe chosen victim: " + result.name + " is already dead!")
                 failedVotes += 1
             else:
                 voteDone = True
-        print("Wolfs victim: " + result.name)
+        if self.__verbose:
+            print("Wolfs victim: " + result.name)
         return result
 
     def killVictims(self,addVictims = []):
@@ -277,19 +294,23 @@ class Game:
             victimList.append(v)
 
         if not victimList:
-            print("Nobody died !!!!")
+            if self.__verbose:
+                print("Nobody died !!!!")
 
         additionalVictims = []
         for victim in victimList:
             victim.alive = False
-            print("Player " + victim.name + " is now dead and was a " + victim.role)
+            if self.__verbose:
+                print("Player " + victim.name + " is now dead and was a " + victim.role)
             if victim.lover:
                 if victim.lover.alive:
-                    print(victim.name + " lover: " + victim.lover.name + ", followed his love in death")
+                    if self.__verbose:
+                        print(victim.name + " lover: " + victim.lover.name + ", followed his love in death")
                     additionalVictims.append(victim.lover)
             if victim.role == "Hunter":
                 hunterVictim = victim.vote(potentialVictims)
-                print("On his dying breath, the Hunter killed " + hunterVictim.name)
+                if self.__verbose:
+                    print("On his dying breath, the Hunter killed " + hunterVictim.name)
                 additionalVictims.append(hunterVictim)
         self.__victimsList.clear()
         addVictims.clear()
@@ -363,7 +384,10 @@ class Game:
                 p.memory.append((player,player.role))
     def getPlayerList(self):
         return self.__playerList[:]
-
+    def addPlayer(self,player):
+        self.__playerList.append(player)
+        if player.role not in self.__presentRoles:
+            self.__presentRoles.append(player.role)
     def getVictimsList(self):
         return self.__victimsList
     def getVillagersAmount(self):
@@ -396,16 +420,3 @@ class Game:
         """
         if self.__villagerAmount == 0 or self.__werewolfAmount == 0 or (self.__villagerAmount == 1 and self.__werewolfAmount==1):
                 self.__running = False
-
-roleList = [
-    ("Werewolf", 4),
-    ("Villager", 6),
-    ("Fortune Teller",1),
-    ("Hunter",1),
-    ("Witch",1),
-    ("Cupid",1),
-]
-g = Game()
-g.setup(roleList)
-g.play()
-[]

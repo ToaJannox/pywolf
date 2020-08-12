@@ -87,9 +87,14 @@ class Player:
         """
         choice = -1
         chosenPlayer = self
+        targetList = playerList[:]
+        if self in targetList:
+            targetList.remove(self)
+        if self.lover and self.lover in targetList:
+            targetList.remove(self.lover)
         while (not chosenPlayer.alive) or (chosenPlayer == self):
-            choice = randint(0, len(playerList) - 1)
-            chosenPlayer = playerList[choice]
+            choice = randint(0, len(targetList) - 1)
+            chosenPlayer = targetList[choice]
         return chosenPlayer
 
     def forgetDeadPlayers(self):
@@ -126,20 +131,25 @@ class Villager(Player):
         Player: the chosen player
 
         """
-        targetList = playerList[:]
-        if self.lover: 
-            if len(targetList) == 3 and (self.camp != self.lover.camp):
-                targetList.remove(self)
-                targetList.remove(self.lover)
-                return targetList[0]
+        targetList = [p for p in playerList if p.alive]
         priorityTargets = []
-        for player, role in self.memory:  # if the player now the roles of some other player we must review them first
-            if player.camp != self.camp:  # if any wolf is found they must be targetted
-                priorityTargets.append(player)
-            else:  # if any villager is found, they must not be targeted
+        if not self.memory: # if memory is empty, vote with the rest of the list
+            return super().vote(targetList)
+        
+        loverCriticalChoice = False
+        
+        for player,role in self.memory:
+            if player.camp == Camp.WEREWOLVES: # check for wolves
+                if player != self.lover: # make sure the wolf isn't the Villager lover
+                    priorityTargets.append(player)
+                else: #if the player lovers is a wolf, he might have to betray his allies
+                    loverCriticalChoice = True
+            elif player.camp == Camp.VILLAGERS: #remove villagers from potential targets
                 targetList.remove(player)
-        if priorityTargets:  # if wolves have been found the player will vote among them, if not the vote is normal
+        if priorityTargets:# if wolves have been identified they must be eliminated
             targetList = priorityTargets
+        elif not priorityTargets and loverCriticalChoice:# if the only wolf left is the player lover then he must targets his fellow villagers anyway
+            targetList = [p for p in playerList if p.alive]
         return super().vote(targetList)
 
 
@@ -172,26 +182,48 @@ class Werewolf(Player):
         Player: the chosen player
 
         """
-        targetList = playerList[:]
-        if not night:
-            if self.lover:
-                if len(targetList) == 3 and (self.camp != self.lover.camp):
-                    targetList.remove(self)
-                    targetList.remove(self.lover)
-                    return targetList[0]
+        targetList = [p for p in playerList if p.alive]
         priorityTargets = []
-        for player, role in self.memory:
-            if player.camp != self.camp:
-                priorityTargets.append(player)
-        for a in self.allies:
-            targetList.remove(a)
-        if priorityTargets:
+        if not self.memory: # if memory is empty, vote with the rest of the list minus the wolves allies
+            for p in self.allies:
+                targetList.remove(p)
+            return super().vote(targetList)
+        
+        loverCriticalChoice = False
+        
+        for player,role in self.memory:
+            if player.camp == Camp.VILLAGERS: # check for Villagers
+                if player != self.lover: # make sure the wolf isn't the Villager lover
+                    priorityTargets.append(player)
+                else: #if the player lovers is a wolf, he might have to betray his allies
+                    loverCriticalChoice = True
+            elif player.camp == Camp.VILLAGERS: #remove villagers from potential targets
+                targetList.remove(player)
+        if priorityTargets:# if wolves have been identified they must be eliminated
             targetList = priorityTargets
-        if night:    
-            if len(targetList)==1 and self.lover in targetList:
-                print("This wolf cannot vote against his allies or his love")
-                return None
+        elif not priorityTargets and loverCriticalChoice:# if the only wolf left is the player lover then he must targets his fellow villagers anyway
+            targetList = [p for p in playerList if p.alive]
         return super().vote(targetList)
+        # targetList = playerList[:]
+        # if not night:
+        #     if self.lover:
+        #         if len(targetList) == 3 and (self.camp != self.lover.camp):
+        #             targetList.remove(self)
+        #             targetList.remove(self.lover)
+        #             return targetList[0]
+        # priorityTargets = []
+        # for player, role in self.memory:
+        #     if player.camp != self.camp:
+        #         priorityTargets.append(player)
+        # for a in self.allies:
+        #     targetList.remove(a)
+        # if priorityTargets:
+        #     targetList = priorityTargets
+        # if night:    
+        #     if len(targetList)==1 and self.lover in targetList:
+        #         print("This wolf cannot vote against his allies or his love")
+        #         return None
+        # return super().vote(targetList)
 
     def forgetDeadPlayers(self):
         """Remove tuples containing dead players from current player memory
