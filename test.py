@@ -4,52 +4,36 @@ from unittest import TestCase
 
 testAmount = 10000
 class WerewolfTest(TestCase):
+    totalTest = 0
+    currentTestRunned = 0
+    totalTestPassed = 0
 
+    def test(self,func):
+        
+        print("\nRunning test "+str(self.currentTestRunned)+"/"+str(self.totalTest)+" : "+func.__name__)
+        try:
+            func()
+            print("\t\033[38;5;10m"+func.__name__+ " passed\033[m")
+            self.totalTestPassed += 1
+        except Exception as e:
+            print("\t\033[38;5;9m"+func.__name__ +" failed\033[m")
+            print(e)
     def testAll(self):
-        try:
-            self.testFrameWork()
-            print("testFramework passed")
-        except:
-            print("testFramework failed")
-        try:
-            self.testGameSetup()
-            print("testGameSetup passed")
-        except:
-            print("testGameSetup failed")
-        try:
-            self.testVote()
-            print("testVote passed")
-        except:
-            print("testVote failed")
-        try:
-            self.testGetPlayers()
-            print("testGetPlayers passed")
-        except:
-            print("testGetPlayers failed")
-        try:
-            self.testWolfVote()
-            print("testWolfVote passed")
-        except:
-            print("testWolfVote failed")
-        try:
-            self.testLoverVote()
-            print("testLoverVote passed")
-        except:
-            print("testLoverVote failed")
-        try:
-            self.testLoverCriticalVote()
-            print("testLoverCriticalVote passed")
-        except:
-            print("testLoverCriticalVote failed")
-        try:
-            self.testWitch()
-            print("testWitch passed")
-        except:
-            print("testWitch failed")
+        testList = []
+        testList.append(self.testFrameWork)
+        testList.append(self.testGameSetup)
+        testList.append(self.testVote)
+        testList.append(self.testGetPlayers)
+        testList.append(self.testWolfVote)
+        testList.append(self.testLoverVote)
+        testList.append(self.testLoverCriticalVote)
+        testList.append(self.testWitchHeal)
+        self.totalTest = len(testList)
+        for t in testList:
+            self.currentTestRunned += 1
+            self.test(t)
 
-            
-            
-    
+        print("\n"+str(self.totalTestPassed) + " out of "+str(self.totalTest) +" passed")
     def testFrameWork(self):
         self.assertTrue(True)
         self.assertFalse(False)
@@ -171,7 +155,7 @@ class WerewolfTest(TestCase):
             t = l2.vote(g.getPlayerList(),True)
             self.assertTrue(t in w)
     
-    def testWitch(self):
+    def testWitchHeal(self):
         witch = Witch()
         l1 = Villager()
         l2= Werewolf()
@@ -192,14 +176,54 @@ class WerewolfTest(TestCase):
             g.addPlayer(w)
         for v in villagers:
             g.addPlayer(v)
-        
+        # lovers tests
         witch.lover = l1
         victims.append(l1)
-        s = witch.heal(victims)
-        # self.assertEqual(witch.heal([l1]),l1)
-        # self.assertEqual(witch.heal(self),self)
-        
+        self.assertEqual(witch.heal(victims),l1)
+        witch.lover = None
+        victims.clear()
 
+        witch.lover = l2
+        victims.append(l2)
+        self.assertEqual(witch.heal(victims),l2)
+        witch.lover = None
+        victims.clear()
+        #  self heal test
+        victims.append(witch)
+        self.assertEqual(witch.heal(victims),witch)
+        victims.clear()
+        
+        # no memory test
+        victims.append(villagers[0])
+        victims.append(villagers[2])
+        
+        for _ in range(0,testAmount):
+            self.assertTrue(witch.heal(victims[:]) in [villagers[0],villagers[2],None])
+        victims.clear()
+
+        victims.append(wolves[0])
+        victims.append(wolves[1])
+        
+        for _ in range(0,testAmount):
+            self.assertTrue(witch.heal(victims[:]) in [wolves[0],wolves[1],None])
+        victims.clear()
+
+        # memory test
+        witch.addMemory(villagers[0],villagers[0].role)
+        victims.append(villagers[0])
+        victims.append(villagers[2])
+
+        for _ in range(0,testAmount):
+            self.assertTrue(witch.heal(victims[:]) in [villagers[0],None])
+        victims.clear()
+
+        witch.addMemory(wolves[0],wolves[0].role)
+        victims.append(wolves[0])
+        victims.append(wolves[1])
+
+        for _ in range(0,testAmount):
+            self.assertTrue(witch.heal(victims[:]) in [wolves[1],None])
+        victims.clear()
 
 
     

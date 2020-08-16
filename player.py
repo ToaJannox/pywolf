@@ -112,7 +112,8 @@ class Player:
         """Use current player power to influence the game
         """
         pass
-
+    def addMemory(self,player,role="",camp=Camp.NONE):
+        self.memories.append(Memory(player,role,camp))
 
 class Villager(Player):
     color = "\033[32m"
@@ -370,41 +371,40 @@ class Witch(Villager):
             Player: the victim the witch saves
         """
         targetList = victimsList[:]
-        victim = None # ! fix this the victim is always set to None
 
         if (self.lover in victimsList) or (self in victimsList):
             self.healthPotion = False
-            if victim == self.lover and victim:
-                print("The witch healed her love: " + self.lover.name)
+            if self.lover in victimsList:
+                # print("The witch healed her love: " + self.lover.name)
                 victimsList.remove(self.lover)
-                return victim
-            elif victim == self:
-                print("The witch healed herself")
+                return self.lover
+            elif self in victimsList:
+                # print("The witch healed herself")
                 victimsList.remove(self)
-                return victim
+                return self
         # if there is a victim she can save it
         if targetList and randint(0, 101) >= self.healUseChance:
-            self.healthPotion = False
             priorityTargets = []
 
             for mem in self.memories:
-                if mem.camp == Camp.VILLAGERS and mem.player in targetList:
+                if mem.role in villagerRoles and mem.player in targetList:
                     priorityTargets.append(mem.player)
-                elif mem.camp != Camp.WEREWOLVES and mem.player in targetList:
+                elif mem.role in werewolfRoles and mem.player in targetList:
                     # if she knows a werewolf, she will not attempt to heal it
                     targetList.remove(mem.player)
             if priorityTargets:  # if she knows villager among the victims she'll heal one
                 victim = priorityTargets[randint(0, len(priorityTargets) - 1)]
-                print("The witch healed a villager " + victim.name)
+                # print("The witch healed a villager " + victim.name)
+                self.healthPotion = False
                 return victim
-            else:  # if she don't know anyone, she'll choose randomly  among
+            elif len(targetList)>0:  # if she don't know anyone, she'll choose randomly  among
                 victim = targetList[randint(0, len(targetList) - 1)]
-                print("The witch healed " + victim.name)
+                # print("The witch healed " + victim.name)
                 victimsList.remove(victim)
+                self.healthPotion = False
                 return victim
-        else:
-            print("The witch did not use her healing potion")
-            return None
+        # print("The witch did not use her healing potion")
+        return None
 
     def poison(self, saved, playerList, victimsList=[]):
         """Chooses a player and kills it.
@@ -518,7 +518,7 @@ villagerRoles = {
     "Fox": Player,
     "Bear Tamer": Player,
     "Stuttering Judge": Player,
-    "Rusted Sword Knight": Player,
+    "Rusty Sword Knight": Player,
     "Shaman": Player,
     "Puppeteer": Player,
     "Ankou": Player,
@@ -535,13 +535,13 @@ ambiguousRoles = {
     "Devoted Maid": Player,
     "Actor": Player,
     "Wild Child": Player,
-    "Wolf-Dog": Player,
-    "Abominable Sectarian": Player
+    "Dog-Wolf": Player
 }
 lonerRoles = {
     "White Wolf": Player,
     "Angel": Player,
     "Pied Pipper": Player,
+    "Abominable Sectarian": Player,
     "White Rabbit": Player
 }
 specialRoles = {
