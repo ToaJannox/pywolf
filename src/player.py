@@ -1,10 +1,11 @@
 
 from random import randint
-
+from roleType import RoleType
 class Player:
     def __init__(self):
         self.name =""
         self.role = "role"
+        self.roleType = None
         self.votes = 0
         self.alive = True
         self.hasPower = False
@@ -27,18 +28,22 @@ class Player:
             choice = randint(0,len(list)-1)
             chosenPlayer = list[choice]
         return choice
+    def death(self):
+        pass
 
 
 class Villager(Player):
     def __init__(self):
         super().__init__()
         self.role = "Villager"
+        self.roleType = RoleType.VILLAGER
 
         
 class Werewolf(Player): 
     def __init__(self):
         super().__init__()
         self.role ="Werewolf"
+        self.roleType = Werewolf
         self.allies = []
     def vote(self,list):
         chosenPlayer = self
@@ -94,8 +99,10 @@ villagerRoles = {
     "Ancient":Player,
     "Scapegoat":Player,
     "Idiot":Player,
+    "Savior":Player,
     "Two Sisters":Player,
     "Three Brothers":Player, 
+    "Devoted Maid":Player,
     "Fox":Player, 
     "Bear Tamer":Player,
     "Stuttering Judge":Player, 
@@ -104,6 +111,7 @@ villagerRoles = {
     "Puppeteer":Player, 
     "Ankou":Player,
     "Night Owl":Player
+    "Astronomer":Player
     }
 
 
@@ -111,6 +119,7 @@ werewolfRoles = {
     "Werewolf":Werewolf,
     "Big Bad Wolf":Player,
     "Vile Father of Wolves":Player
+    "Fortune Teller Wolf": Player
     }
 ambiguousRoles = {
     "Thief":Player,
