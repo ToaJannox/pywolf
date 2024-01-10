@@ -1,6 +1,6 @@
 import math
 
-from player import Player
+from player import Player,Werewolf,Villager
 from random import shuffle
 
 from time import sleep
@@ -11,57 +11,58 @@ from enums.roleType import RoleType
 
 DEFAULT_MAX_TURNS = 10
 DELAY = 1
-
+MIN_PLAYER = 8
+MAX_WOLF_ROLES = 8
 
 class Game:
     def __init__(self):
         self.player_list = []
         self.player_amount = 0
         self.phase = Phase.SETUP
-        self.role_list = dict()
+        self.role_dict = dict()
         self.victims = []
         self.max_turns = DEFAULT_MAX_TURNS
         self.current_turn = 0
         self.running = False
-        self.player_factions = {"villagers": 0, "werewolves": 0, "others": 0}
+        self.player_factions = {"villagers": [], "werewolves": [], "others": []}
         self.winning_faction = None
 
-    def setup(self, roleList=[("Villager", 7), ("Werewolf", 3)]):
+    def setup(self):
         print("Setting game up.")
-        self.player_list = []
-        for role, amount in roleList:
-            pass
-            # if role in villagerRoles:
-            #     villagerAmount += amount
-            #     for i in range(0, amount):
-            #         player_list.append(villagerRoles[role]())
-            # elif role in werewolfRoles:
-            #     werewolfAmount += amount
-            #     for i in range(0, amount):
-            #         player_list.append(werewolfRoles[role]())
-            # elif role in ambiguousRoles:
-            #     ambiguousRoles += amount
-            #     for i in range(0, amount):
-            #         player_list.append(ambiguousRoles[role]())
-            # elif role in lonerRoles:
-            #     lonerAmount += amount
-            #     for i in range(0, amount):
-            #         player_list.append(lonerRoles[role]())
-            # elif role in specialRoles:
-            #     specialAmount += amount
-            #     for i in range(0, amount):
-            #         player_list.append(specialRoles[role]())
-            # else:  # if role is unknown put villager instead
-            #     raise ValueError("Unknown role", role)
-
+        while True:
+            self.player_amount = int(input(f"How many player? (>={MIN_PLAYER})  "))
+            if self.player_amount >= MIN_PLAYER:
+                break;
+            print(f"Number of Players must at least be {MIN_PLAYER}")
+        print(f"{self.player_amount} playing")
+        werewolves = min(math.floor(self.player_amount*0.25),MAX_WOLF_ROLES)
+        villagers = self.player_amount - werewolves
+        for w in range(0,werewolves):
+            p = Werewolf()
+            self.player_list.append(p)
+            self.player_factions["werewolves"].append(p)
+        for v in range(0,villagers):
+            p = Villager()
+            self.player_list.append(p)
+            self.player_factions["villagers"].append(p)
         shuffle(self.player_list)
-        i = 0
-        for player in self.player_list:
-            player.name = str(i) + "p"
-            i += 1
+        self.show_faction_status()
+        
+        for idx,p in enumerate(self.player_list):
+            p.set_name(f"Player {idx}")
+        for p in self.player_list:
+            p.set_memory(self.player_list)
+        self.true_show_players()
+        
+        
 
     def first_night(self):
-        self.night()
+        w = self.player_factions["werewolves"]
+        for p in w:
+            p.learn_allies(w)
+        # self.night()
+
+
 
     def night(self):
         self.victims.append(self.wolfVote())
@@ -167,8 +168,21 @@ class Game:
             p.death()
         self.count_alive_player_per_factions()
 
+    def show_faction_status(self):
+        v = len(self.player_factions["villagers"])
+        w = len(self.player_factions["werewolves"])
+        print(f"{v} villagers | {w} werewolves")
+    def show_players(self):
+        for p in self.player_list:
+            p.display()
 
-g = Game()
+    def true_show_players(self):
+        for p in self.player_list:
+            p.true_display()
 
-g.setup()
-g.play()
+    def game_credits(self):
+        print(
+            """
+            Thanks for playing my game
+            Made as a side project for my own fun and love of programming
+            """)

@@ -1,6 +1,7 @@
 from enum import Enum
 
 class RoleType(Enum):
-    VILLAGER = 0
-    WEREWOLF = 1
-    LONER = 2
+    VILLAGER = 1
+    WEREWOLF = 2
+    LONER = 3
+    UNCERTAIN = 4
