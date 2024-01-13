@@ -1,31 +1,39 @@
 import math
 
-from player import Player,Werewolf,Villager
 from random import shuffle
 
 from time import sleep
+from typing import List, Dict
 
+from enums.phase_enum import PhaseEnum
+from src.enums.faction_flag import FactionFlag
+from factions.faction_dict import FactionDict
 
-from enums.phase import Phase
-from enums.roleType import RoleType
+from player_role.player import Player
+from player_role.werewolves import Werewolf
+from player_role.villagers import Villager
+from voting_system.vote_system import VoteSystem
 
 DEFAULT_MAX_TURNS = 10
 DELAY = 1
 MIN_PLAYER = 8
 MAX_WOLF_ROLES = 8
 
+
+vote_system = VoteSystem()
+
 class Game:
     def __init__(self):
-        self.player_list = []
-        self.player_amount = 0
-        self.phase = Phase.SETUP
-        self.role_dict = dict()
-        self.victims = []
-        self.max_turns = DEFAULT_MAX_TURNS
-        self.current_turn = 0
-        self.running = False
-        self.player_factions = {"villagers": [], "werewolves": [], "others": []}
-        self.winning_faction = None
+        self.player_list: List[Player]  = []
+        self.player_amount: int = 0
+        self.phase: PhaseEnum = PhaseEnum.SETUP
+        self.role_dict: Dict[str,int] = dict()
+        self.victims: List[Player] = []
+        self.max_turns: int = DEFAULT_MAX_TURNS
+        self.current_turn: int = 0
+        self.running: bool = False
+        self.player_factions: FactionDict
+        self.winning_faction: FactionFlag = None
 
     def setup(self):
         print("Setting game up.")
@@ -37,11 +45,11 @@ class Game:
         print(f"{self.player_amount} playing")
         werewolves = min(math.floor(self.player_amount*0.25),MAX_WOLF_ROLES)
         villagers = self.player_amount - werewolves
-        for w in range(0,werewolves):
+        for _ in range(0,werewolves):
             p = Werewolf()
             self.player_list.append(p)
             self.player_factions["werewolves"].append(p)
-        for v in range(0,villagers):
+        for _ in range(0,villagers):
             p = Villager()
             self.player_list.append(p)
             self.player_factions["villagers"].append(p)
@@ -51,7 +59,7 @@ class Game:
         for idx,p in enumerate(self.player_list):
             p.set_name(f"Player {idx}")
         for p in self.player_list:
-            p.set_memory(self.player_list)
+            p.init_memory(self.player_list)
         self.true_show_players()
         
         
@@ -65,27 +73,31 @@ class Game:
 
 
     def night(self):
-        self.victims.append(self.wolfVote())
-        self.phase = Phase.DAY
+        victim = self.wolf_vote()
+        if victim:
+            self.victims.append(self.wolf_vote())
+        self.phase = PhaseEnum.DAY
 
     def day(self):
         self.current_turn += 1
-        self.victims.append(self.dayVote())
-        self.phase = Phase.NIGHT
+        victim = self.day_vote()
+        if victim:
+            self.victims.append(victim)
+        self.phase = PhaseEnum.NIGHT
 
     def play(self):
         self.running = True
         while self.running:
-            if self.phase == Phase.SETUP:
+            if self.phase == PhaseEnum.SETUP:
                 print("\nSetup\n")
-                self.phase = Phase.FIRST_NIGHT
-            elif self.phase == Phase.FIRST_NIGHT:
+                self.phase = PhaseEnum.FIRST_NIGHT
+            elif self.phase == PhaseEnum.FIRST_NIGHT:
                 print("\nFirst Night\n")
                 self.first_night()
-            elif self.phase == Phase.NIGHT:
+            elif self.phase == PhaseEnum.NIGHT:
                 print("\nNight\n")
                 self.night()
-            elif self.phase == Phase.DAY:
+            elif self.phase == PhaseEnum.DAY:
                 print("Day\n")
                 self.day()
             self.killVictims()
@@ -102,24 +114,24 @@ class Game:
         print("Game ended")
         print(f"Villager alive {self.player_factions['villagers']}")
         print(f"Werewolves alive {self.player_factions['werewolves']}")
-        if self.winning_faction == RoleType.VILLAGER:
+        if self.winning_faction == FactionFlag.VILLAGER:
             print("The wolves have won!!")
-        elif self.winning_faction == RoleType.WEREWOLF:
+        elif self.winning_faction == FactionFlag.WEREWOLF:
             print("The villagers have won!!")
         else:
             print("Player win")
 
     def count_alive_player_per_factions(self):
         for p in self.player_list:
-            if p.role_type == RoleType.VILLAGER:
+            if FactionFlag.VILLAGER in p.faction:
                 self.player_factions["villagers"].append(p)
-            elif p.role_type == RoleType.WEREWOLF:
+            elif FactionFlag.WEREWOLF in p.faction:
                 self.player_factions["werewolves"].append(p)
             else:
                 self.player_factions["others"].append(p)
 
     def check_game_end(self):
-        return self.player_factions["werewolves"] >= self.player_factions["villagers"]
+        return len(self.player_factions["villagers"]) == 0 or len(self.player_factions["werewolves"]) == 0
 
     def wolf_setup(self):
         wolf_list = []
@@ -129,40 +141,13 @@ class Game:
         for p in wolf_list:
             p.allies = [a for a in wolf_list if a != p]
 
-    def wolf_vote(self):
-        result = 0
-        highest_vote = 0
-        for player in self.player_list:
-            if player.role == "Werewolf" and player.alive:
-                vote = player.vote(self.player_list)
-                self.player_list[vote].votes += 1
-        for player in self.player_list:
-            if player.role == "Villager" and player.votes > highest_vote:
-                highest_vote = player.votes
-                result = self.player_list.index(player)
-        print(f"Wolfs victim: {self.player_list[result].name}")
-        return result
+    def wolf_vote(self) -> Player:
+        return vote_system.vote(self.player_factions["werewolves"])
 
-    def day_vote(self):
-        result = 0
-        highest_vote = 0
-        for player in self.player_list:
-            if player.alive:
-                vote = player.vote(self.player_list)
-                if player.isCaptain:
-                    self.player_list[vote].votes += 2
-                else:
-                    self.player_list[vote].votes += 1
-        for player in self.player_list:
-            if player.votes > highest_vote:
-                highest_vote = player.votes
-                result = self.player_list.index(player)
-        print(
-            f"Chosen villager: {self.player_list[result].name} with  {self.player_list[result].votes} votes"
-        )
-        return result
+    def day_vote(self) -> Player:
+        return vote_system(self.player_list)
 
-    def kill_victims(self):
+    def kill_victims(self) -> None:
         for victim in self.victims:
             p = self.player_list[victim]
             p.death()

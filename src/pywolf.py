@@ -3,7 +3,7 @@ from game import Game
 def pywolf():
     g = Game()
     g.setup()
-    g.first_night()
+    g.play()
     # g.play()
     g.game_credits()
 
