@@ -192,3 +192,69 @@ class RustedKnight(Villager):
         poisoned_wolf = None
         super().death()
         return poisoned_wolf
+
+class Raven(Villager):
+    def __init__(self):
+        super().__init__()
+        self.role = "raven"
+        self.display_role = "Raven"
+        self.has_power = True
+    
+    def curse_player(self, targets:List[Player]) -> Player:
+        return None
+
+class Arsonist(Villager):
+    def __init__(self):
+        super().__init__()
+        self.role = "arsonist"
+        self.display_role = "Arsonist"
+        self.has_power = True
+    
+    def burn_player_home(self, targets:List[Player]) -> Player:
+        self.has_power = False
+        return None
+
+class Gypsy(Villager):
+    def __init__(self):
+        super().__init__()
+        self.role = "gipsy"
+        self.display_role = "Gipsy"
+        self.has_power = True
+        self.spiritism_questions = []
+
+class Shaman(Villager):
+    def __init__(self):
+        super().__init__()
+        self.role = "shaman"
+        self.display_role = "Shaman"
+        self.has_power = True
+
+class Puppeteer(Villager):
+    def __init__(self):
+        super().__init__()
+        self.role = "puppeteer"
+        self.display_role = "Puppeteer"
+        self.has_power = True
+        self.controlled_wolf: Werewolf = None
+
+class Ankou(Villager):
+    def __init__(self):
+        super().__init__()
+        self.role = "ankou"
+        self.display_role = "Ankou"
+        self.has_power = True
+
+class Sleepwalker(Villager):
+    def __init__(self):
+        super().__init__()
+        self.role = "sleepwalker"
+        self.display_role = "Sleepwalker"
+        self.has_power = True
+        self.visited_player: Player = None
+
+class Astronomer(Villager):
+    def __init__(self):
+        super().__init__()
+        self.role = "astronomer"
+        self.display_role = "Astronomer"
+        self.has_power = True

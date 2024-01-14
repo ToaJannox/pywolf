@@ -30,7 +30,7 @@ class WhiteWolf(Werewolf):
         super().__init__()
         self.role="white_wolf"
         self.display_role="White Wolf"
-        self.faction |= FactionFlag.LONER
+        self.faction |= FactionFlag.SOLO
 
 class BigBadWolf(Werewolf):
     def __init__(self):
