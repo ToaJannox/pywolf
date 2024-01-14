@@ -6,7 +6,7 @@ from time import sleep
 from typing import List, Dict
 
 from enums.phase_enum import PhaseEnum
-from src.enums.faction_flag import FactionFlag
+from enums.faction_flag import FactionFlag
 from factions.faction_dict import FactionDict
 
 from player_role.player import Player

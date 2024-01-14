@@ -1,5 +1,4 @@
 from game import Game
-
 def pywolf():
     g = Game()
     g.setup()
@@ -8,15 +7,12 @@ def pywolf():
     g.game_credits()
 
 def test_main():
-    print("Hello World")
-    val = None
-    while True:
-        val = int(input("input "))
-        if val >= 8:
-            break;
-        print("not enough")
-    print(val)
+    from player_role.werewolves import FortuneTellerWolf
+    w = FortuneTellerWolf()
+    w.set_name("test_fortune_wolf")
+    w.debug_display()
+
 
 if __name__ == "__main__":
-    pywolf()
-    # test_main()
+    # pywolf()
+    test_main()

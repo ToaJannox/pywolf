@@ -2,7 +2,6 @@ from random import randint
 from typing import List, Dict, TypedDict
 
 from enums.faction_flag import FactionFlag
-from src.voting_system.vote import Vote
 
 class Memory(TypedDict):
     player: 'Player'
@@ -38,6 +37,11 @@ class Player:
     def true_display(self) -> None:
         print(f"{self.name} ({self.display_role})")
 
+    def debug_display(self) -> None:
+        from inspect import getmembers
+        data = getmembers(self)
+        for v in data:
+            print(f"name: {v[0]} value: {v[1]}")
 
     def vote(self, targets: List['Player']) -> 'Player':
         """
@@ -69,14 +73,7 @@ class Player:
             Allows the player to look into another 
         """
         self.memories[player.name]["faction_known"] = True
-    
-    # def known_roles(self) -> List[str]:
-    #     res = []
-    #     for mem in self.memories.values():
-    #         if mem["role_known"]:
-    #             res.append({"role":mem["player"].role})
-    #     return res
-    
+
     def death(self):
         self.alive = False
         self.role_is_revealed = True
@@ -84,7 +81,8 @@ class Player:
             self.lover.death()
         print(f"Player {self.name} is now dead and was a {self.display_role}")
         
-
+    def forget_player(self, player: 'Player') -> None:
+        del self.memories[player.name]
 
 
 
@@ -99,24 +97,9 @@ class Player:
 
 
 # villagerRoles = {
-#     "Villager": Villager,
-#     "Villager-Villager": Player,
-#     "Fortune Teller": FortuneTeller,
-#     "Cupid": Player,
-#     "Witch": Player,
-#     "Hunter": Player,
-#     "Little Girl": Player,
-#     "Guard": Player,
-#     "Ancient": Player,
-#     "Scapegoat": Player,
-#     "Idiot": Player,
-#     "Savior": Player,
-#     "Two Sisters": Player,
-#     "Three Brothers": Player,
+
+
 #     "Devoted Maid": Player,
-#     "Fox": Player,
-#     "Bear Tamer": Player,
-#     "Stuttering Judge": Player,
 #     "Rusted Sword Knight": Player,
 #     "Shaman": Player,
 #     "Puppeteer": Player,
@@ -126,14 +109,8 @@ class Player:
 # }
 
 
-# werewolfRoles = {
-#     "Werewolf": Werewolf,
-#     "Big Bad Wolf": Player,
-#     "Vile Father of Wolves": Player,
-#     "Fortune Teller Wolf": Player,
-# }
+
 # ambiguousRoles = {
-#     "Thief": Player,
 #     "Devoted Maid": Player,
 #     "Actor": Player,
 #     "Wild Child": Player,
